@@ -1,0 +1,66 @@
+        -:    0:Source:Prim.hpp
+        -:    1:#ifndef PRIM_HPP
+        -:    2:#define PRIM_HPP
+        -:    3:
+        -:    4:#include "MSTAlgos.hpp"
+        -:    5:#include <vector>
+        -:    6:#include <queue>
+        -:    7:#include <limits>
+        -:    8:#include <functional>
+        -:    9:#include <algorithm>
+        -:   10:
+        -:   11:template<typename T>
+        -:   12:class Prim : public MSTAlgos<T> {
+        -:   13:public:
+        -:   14:    // Implementation of Prim's algorithm to solve the Minimum Spanning Tree (MST) problem
+        2:   15:    Tree<T> solveMST(const Graph<T>& graph) override {
+        2:   16:        int V = graph.getAdjacencyList().size(); // Number of vertices
+        2:   17:        Tree<T> mst(V);  // Create an empty Minimum Spanning Tree (MST)
+        2:   18:        std::vector<T> key(V, std::numeric_limits<T>::max());  // Key values to pick the minimum weight edge
+        2:   19:        std::vector<int> parent(V, -1);  // To store the parent vertices of the MST
+        2:   20:        std::vector<bool> inMST(V, false);  // To check if a vertex is included in the MST
+        -:   21:
+        -:   22:        // Priority queue to select the edge with the minimum weight
+        -:   23:        using pii = std::pair<T, int>;
+        2:   24:        std::priority_queue<pii, std::vector<pii>, std::greater<pii>> pq;
+        -:   25:
+        -:   26:        // Loop through all vertices to handle disconnected graphs
+        6:   27:        for (int startVertex = 0; startVertex < V; ++startVertex) {
+        4:   28:            if (!inMST[startVertex]) {
+        -:   29:                // Initialize the starting vertex
+        2:   30:                key[startVertex] = 0;
+        2:   31:                pq.push({0, startVertex});
+        -:   32:
+        6:   33:                while (!pq.empty()) {
+        4:   34:                    int u = pq.top().second;  // Select the vertex with the minimum weight
+        4:   35:                    pq.pop();
+        -:   36:
+        -:   37:                    // Skip if the vertex is already included in the MST
+       4*:   38:                    if (inMST[u]) continue;
+        -:   39:
+        -:   40:                    // Mark this vertex as part of the MST
+        4:   41:                    inMST[u] = true;
+        -:   42:
+        -:   43:                    // Add the edge to the MST if it's not the starting vertex
+        4:   44:                    if (parent[u] != -1) {
+        2:   45:                        mst.addEdge(parent[u], u, key[u]);
+        -:   46:                    }
+        -:   47:
+        -:   48:                    // Traverse the neighbors of vertex u
+        8:   49:                    for (auto [v, weight] : graph.getAdjacencyList()[u]) {
+        -:   50:                        // If v is not yet in the MST and the edge u-v has a smaller weight than the current key value for v
+        4:   51:                        if (!inMST[v] && weight < key[v]) {
+        2:   52:                            key[v] = weight;  // Update the key with the minimum weight
+        2:   53:                            pq.push({key[v], v});  // Add the neighbor to the priority queue
+        2:   54:                            parent[v] = u;  // Update the parent of vertex v
+        -:   55:                        }
+        -:   56:                    }
+        -:   57:                }
+        -:   58:            }
+        -:   59:        }
+        -:   60:
+        4:   61:        return mst;  // Return the constructed Minimum Spanning Tree (MST)
+        2:   62:    }
+        -:   63:};
+        -:   64:
+        -:   65:#endif // PRIM_HPP

@@ -1,0 +1,237 @@
+        -:    0:Source:CommandHandler.cpp
+        -:    1:#include "CommandHandler.hpp"
+        -:    2:#include <sys/socket.h> 
+        -:    3:#include <unistd.h>
+        -:    4:#include <future>  
+        -:    5:#include <sstream>
+        -:    6:
+        -:    7:template<typename T>
+        2:    8:CommandHandler<T>::CommandHandler(std::shared_ptr<std::atomic<bool>> serverRunning, size_t numThreads)
+        2:    9:    : serverRunning(serverRunning),
+        -:   10:      // Initialize ActiveObjects without processing functions
+        2:   11:      parserAO(),
+        2:   12:      mstAO(),
+        2:   13:      metricsAO(),
+        2:   14:      threadPool(numThreads) {}
+        -:   15:
+        -:   16:template<typename T>
+        2:   17:CommandHandler<T>::~CommandHandler() {
+        -:   18:    // Ensure all ActiveObjects are stopped and resources are freed
+        2:   19:    parserAO.stop();
+        2:   20:    mstAO.stop();
+        2:   21:    metricsAO.stop();
+        2:   22:    threadPool.stop();
+        2:   23:}
+        -:   24:
+        -:   25:template<typename T>
+       15:   26:void CommandHandler<T>::handleCommand(int client_fd, const std::string& command) {
+       15:   27:    auto msg = std::make_shared<Message<T>>();
+       15:   28:    msg->client_fd = client_fd;
+       15:   29:    msg->rawCommand = command;
+       15:   30:    msg->error = false;
+        -:   31:
+        -:   32:    // Send the message to parserAO with the appropriate processing function
+      30*:   33:    parserAO.send(msg, [this](std::shared_ptr<Message<T>> msg) {
+        -:   34:        // Parsing logic
+       15:   35:        std::istringstream iss(msg->rawCommand);
+       15:   36:        iss >> msg->cmd;
+        -:   37:
+       15:   38:        if (msg->cmd == "Newgraph") {
+        -:   39:            int V;
+        2:   40:            iss >> V;
+        2:   41:            if (V <= 0) {
+        1:   42:                msg->error = true;
+        1:   43:                msg->errorMessage = "Invalid number of vertices.";
+        -:   44:            } else {
+        1:   45:                auto graph = std::make_unique<Graph<T>>(V);
+        -:   46:                {
+        -:   47:                    // Lock to protect access to clientGraphs
+        1:   48:                    std::lock_guard<std::mutex> lock(graphMutex);
+        1:   49:                    clientGraphs[msg->client_fd] = std::move(graph);
+        1:   50:                }
+        1:   51:                msg->response = "New graph created with " + std::to_string(V) + " vertices.";
+        1:   52:            }
+        -:   53:            // Send the response to the client
+        2:   54:            sendResponse(msg);
+        -:   55:        }
+       13:   56:        else if (msg->cmd == "Newedge") {
+        -:   57:            {
+        3:   58:                std::lock_guard<std::mutex> lock(graphMutex);
+        3:   59:                if (clientGraphs.find(msg->client_fd) == clientGraphs.end()) {
+    #####:   60:                    msg->error = true;
+    #####:   61:                    msg->errorMessage = "No graph created. Use 'Newgraph' first.";
+        -:   62:                } else {
+        -:   63:                    int u, v;
+        -:   64:                    T weight;
+        3:   65:                    iss >> u >> v >> weight;
+        3:   66:                    auto& graph = clientGraphs[msg->client_fd];
+        3:   67:                    int adjSize = static_cast<int>(graph->getAdjacencyList().size());
+        3:   68:                    if (u < 0 || v < 0 || u >= adjSize || v >= adjSize) {
+        2:   69:                        msg->error = true;
+        2:   70:                        msg->errorMessage = "Invalid vertex indices.";
+        -:   71:                    } else {
+        1:   72:                        graph->addEdge(u, v, weight);
+        1:   73:                        msg->response = "Edge added between " + std::to_string(u) + " and " + std::to_string(v) + " with weight " + std::to_string(weight) + ".";
+        -:   74:                    }
+        -:   75:                }
+        3:   76:            }
+        -:   77:            // Send the response to the client
+        3:   78:            sendResponse(msg);
+        -:   79:        }
+       10:   80:        else if (msg->cmd == "MST") {
+        7:   81:            iss >> msg->algo >> msg->pattern;
+       7*:   82:            if (msg->algo.empty() || msg->pattern.empty()) {
+    #####:   83:                msg->error = true;
+    #####:   84:                msg->errorMessage = "Usage: MST <algo> <design pattern>";
+    #####:   85:                sendResponse(msg);
+        -:   86:            } else {
+        7:   87:                if (msg->pattern == "Pipeline") {
+        -:   88:                    // Send the task to mstAO with the appropriate processing function
+       2*:   89:                    mstAO.send(msg, [this](std::shared_ptr<Message<T>> msg) {
+        -:   90:                        // Step for calculating the MST
+        -:   91:                        {
+        2:   92:                            std::lock_guard<std::mutex> lock(graphMutex);
+        2:   93:                            if (clientGraphs.find(msg->client_fd) == clientGraphs.end()) {
+    #####:   94:                                msg->error = true;
+    #####:   95:                                msg->errorMessage = "No graph created. Use 'Newgraph' first.";
+    #####:   96:                                sendResponse(msg);
+    #####:   97:                                return;
+        -:   98:                            } else {
+        2:   99:                                auto& graph = clientGraphs[msg->client_fd];
+        -:  100:                                try {
+        2:  101:                                    auto mstSolver = MSTFactory<T>::createSolver(msg->algo);
+        2:  102:                                    msg->mst = std::make_unique<Tree<T>>(mstSolver->solveMST(*graph));
+        2:  103:                                } catch (const std::exception& e) {
+    =====:  104:                                    msg->error = true;
+    =====:  105:                                    msg->errorMessage = e.what();
+    =====:  106:                                    sendResponse(msg);
+    =====:  107:                                    return;
+        -:  108:                                }
+        -:  109:                            }
+        2:  110:                        }
+        -:  111:                        // Proceed to the metrics calculation step
+       2*:  112:                        metricsAO.send(msg, [this](std::shared_ptr<Message<T>> msg) {
+        -:  113:                            // Step for calculating the metrics
+        2:  114:                            if (!msg->mst) {
+    #####:  115:                                msg->error = true;
+    #####:  116:                                msg->errorMessage = "MST not available.";
+    #####:  117:                                sendResponse(msg);
+    #####:  118:                                return;
+        -:  119:                            }
+        2:  120:                            T totalWeight = msg->mst->getTotalWeight();
+        2:  121:                            T longestDistance = msg->mst->findLongestDistance();
+        2:  122:                            double averageDistance = msg->mst->findAverageDistance();
+        2:  123:                            T shortestDistance = msg->mst->findShortestDistance();
+        -:  124:                            // Prepare the response
+        2:  125:                            std::ostringstream oss;
+        2:  126:                            oss << "MST successfully calculated with Pipeline.\n";
+        2:  127:                            oss << "Total weight: " << totalWeight << "\n";
+        2:  128:                            oss << "Longest distance: " << longestDistance << "\n";
+        2:  129:                            oss << "Average distance: " << averageDistance << "\n";
+        2:  130:                            oss << "Shortest distance: " << shortestDistance << "\n";
+        -:  131:
+        2:  132:                            msg->response = oss.str();
+        -:  133:                            // Send the response to the client
+        2:  134:                            sendResponse(msg);
+        2:  135:                        });
+        -:  136:                    });
+        -:  137:                    
+        5:  138:                } else if (msg->pattern == "LF") {
+        -:  139:                    // Enqueue the MST calculation task
+        4:  140:                    threadPool.enqueue([this, msg]() {
+        -:  141:                        // MST calculation
+        -:  142:                        {
+        4:  143:                            std::lock_guard<std::mutex> lock(graphMutex);
+        4:  144:                            if (clientGraphs.find(msg->client_fd) == clientGraphs.end()) {
+        1:  145:                                msg->error = true;
+        1:  146:                                msg->errorMessage = "No graph created. Use 'Newgraph' first.";
+        1:  147:                                sendResponse(msg);
+        1:  148:                                return;
+        -:  149:                            } else {
+        3:  150:                                auto& graph = clientGraphs[msg->client_fd];
+        -:  151:                                try {
+        3:  152:                                    auto mstSolver = MSTFactory<T>::createSolver(msg->algo);
+        2:  153:                                    msg->mst = std::make_unique<Tree<T>>(mstSolver->solveMST(*graph));
+        3:  154:                                } catch (const std::exception& e) {
+        1:  155:                                    msg->error = true;
+        1:  156:                                    msg->errorMessage = e.what();
+        1:  157:                                    sendResponse(msg);
+        1:  158:                                    return;
+        -:  159:                                }
+        -:  160:                            }
+        4:  161:                        }
+        -:  162:                    });
+        -:  163:
+        -:  164:                    // Enqueue the metrics calculation task
+       4*:  165:                    threadPool.enqueue([this, msg]() {
+        -:  166:
+        -:  167:                        // Check if there was an error during MST calculation
+        4:  168:                        if (msg->error) {
+        2:  169:                            return; // The response has already been sent
+        -:  170:                        }
+        -:  171:
+        -:  172:                        // Metrics calculation
+        2:  173:                        if (!msg->mst) {
+    #####:  174:                            msg->error = true;
+    #####:  175:                            msg->errorMessage = "MST not available.";
+    #####:  176:                            sendResponse(msg);
+    #####:  177:                            return;
+        -:  178:                        }
+        2:  179:                        T totalWeight = msg->mst->getTotalWeight();
+        2:  180:                        T longestDistance = msg->mst->findLongestDistance();
+        2:  181:                        double averageDistance = msg->mst->findAverageDistance();
+        2:  182:                        T shortestDistance = msg->mst->findShortestDistance();
+        -:  183:
+        -:  184:                        // Prepare the response
+        2:  185:                        std::ostringstream oss;
+        2:  186:                        oss << "MST successfully calculated with LF.\n";
+        2:  187:                        oss << "Total weight: " << totalWeight << "\n";
+        2:  188:                        oss << "Longest distance: " << longestDistance << "\n";
+        2:  189:                        oss << "Average distance: " << averageDistance << "\n";
+        2:  190:                        oss << "Shortest distance: " << shortestDistance << "\n";
+        -:  191:
+        2:  192:                        msg->response = oss.str();
+        -:  193:                        // Send the response to the client
+        2:  194:                        sendResponse(msg);
+        2:  195:                    });
+        -:  196:                } else {
+        1:  197:                    msg->error = true;
+        1:  198:                    msg->errorMessage = "Unknown design pattern. Use 'Pipeline' or 'LF'.";
+        1:  199:                    sendResponse(msg);
+        -:  200:                }
+        -:  201:            }
+        -:  202:        }
+        3:  203:        else if (msg->cmd == "exit") {
+        -:  204:            // Handle the 'exit' command
+        1:  205:            msg->response = "exit";
+        1:  206:            sendResponse(msg);
+        -:  207:        }
+        -:  208:        else {
+        -:  209:            // Unknown command
+        2:  210:            msg->error = true;
+        2:  211:            msg->errorMessage = "Unknown command.";
+        2:  212:            sendResponse(msg);
+        -:  213:        }
+       15:  214:    });
+       15:  215:}
+        -:  216:
+        -:  217:template<typename T>
+       15:  218:void CommandHandler<T>::sendResponse(std::shared_ptr<Message<T>> msg) {
+        -:  219:    // Send the response to the client
+       15:  220:    std::string fullResponse;
+       15:  221:    if (msg->error) {
+        8:  222:        fullResponse = "Error: " + msg->errorMessage + "\n";
+        -:  223:    } else {
+        7:  224:        fullResponse = msg->response + "\n";
+        -:  225:    }
+       15:  226:    send(msg->client_fd, fullResponse.c_str(), fullResponse.size(), 0);
+        -:  227:
+        -:  228:    // If the command is 'exit', close the connection and stop the server
+       15:  229:    if (msg->cmd == "exit") {
+        -:  230:        // Set serverRunning to false
+        1:  231:        serverRunning->store(false);
+        -:  232:    }
+       15:  233:}
+        -:  234:
+        -:  235:// Explicit template instantiation for type double
+        -:  236:template class CommandHandler<double>;

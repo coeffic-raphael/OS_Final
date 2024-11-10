@@ -1,0 +1,118 @@
+==9447== Helgrind, a thread error detector
+==9447== Copyright (C) 2007-2017, and GNU GPL'd, by OpenWorks LLP et al.
+==9447== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==9447== Command: ./server
+==9447== 
+Server started on port 4444
+==9447== ---Thread-Announcement------------------------------------------
+==9447== 
+==9447== Thread #2 was created
+==9447==    at 0x4BE59F3: clone (clone.S:76)
+==9447==    by 0x4BE68EE: __clone_internal (clone-internal.c:83)
+==9447==    by 0x4B546D8: create_thread (pthread_create.c:295)
+==9447==    by 0x4B551FF: pthread_create@@GLIBC_2.34 (pthread_create.c:828)
+==9447==    by 0x4853767: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==9447==    by 0x4950328: std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x133333: std::thread::thread<void (Server::*)(int), Server*, int&, void>(void (Server::*&&)(int), Server*&&, int&) (std_thread.h:143)
+==9447==    by 0x132A59: void __gnu_cxx::new_allocator<std::thread>::construct<std::thread, void (Server::*)(int), Server*, int&>(std::thread*, void (Server::*&&)(int), Server*&&, int&) (new_allocator.h:162)
+==9447==    by 0x132007: void std::allocator_traits<std::allocator<std::thread> >::construct<std::thread, void (Server::*)(int), Server*, int&>(std::allocator<std::thread>&, std::thread*, void (Server::*&&)(int), Server*&&, int&) (alloc_traits.h:516)
+==9447==    by 0x132161: void std::vector<std::thread, std::allocator<std::thread> >::_M_realloc_insert<void (Server::*)(int), Server*, int&>(__gnu_cxx::__normal_iterator<std::thread*, std::vector<std::thread, std::allocator<std::thread> > >, void (Server::*&&)(int), Server*&&, int&) (vector.tcc:449)
+==9447==    by 0x1317D9: std::thread& std::vector<std::thread, std::allocator<std::thread> >::emplace_back<void (Server::*)(int), Server*, int&>(void (Server::*&&)(int), Server*&&, int&) (vector.tcc:121)
+==9447==    by 0x13025F: Server::start() (Server.cpp:73)
+==9447== 
+==9447== ---Thread-Announcement------------------------------------------
+==9447== 
+==9447== Thread #1 is the program's root thread
+==9447== 
+==9447== ----------------------------------------------------------------
+==9447== 
+==9447== Possible data race during read of size 8 at 0x1FFEFFF778 by thread #2
+==9447== Locks held: none
+==9447==    at 0x132449: __gnu_cxx::__normal_iterator<std::thread*, std::vector<std::thread, std::allocator<std::thread> > >::__normal_iterator(std::thread* const&) (stl_iterator.h:1028)
+==9447==    by 0x13183E: std::vector<std::thread, std::allocator<std::thread> >::begin() (stl_vector.h:812)
+==9447==    by 0x1303EC: Server::stop() (Server.cpp:89)
+==9447==    by 0x13086C: Server::handleClient(int) (Server.cpp:120)
+==9447==    by 0x135728: void std::__invoke_impl<void, void (Server::*)(int), Server*, int>(std::__invoke_memfun_deref, void (Server::*&&)(int), Server*&&, int&&) (invoke.h:74)
+==9447==    by 0x1355DC: std::__invoke_result<void (Server::*)(int), Server*, int>::type std::__invoke<void (Server::*)(int), Server*, int>(void (Server::*&&)(int), Server*&&, int&&) (invoke.h:96)
+==9447==    by 0x135471: void std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:259)
+==9447==    by 0x13538C: std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> >::operator()() (std_thread.h:266)
+==9447==    by 0x1352EC: std::thread::_State_impl<std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> > >::_M_run() (std_thread.h:211)
+==9447==    by 0x4950252: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==9447==    by 0x4B54AC2: start_thread (pthread_create.c:442)
+==9447== 
+==9447== This conflicts with a previous write of size 8 by thread #1
+==9447== Locks held: none
+==9447==    at 0x13224C: void std::vector<std::thread, std::allocator<std::thread> >::_M_realloc_insert<void (Server::*)(int), Server*, int&>(__gnu_cxx::__normal_iterator<std::thread*, std::vector<std::thread, std::allocator<std::thread> > >, void (Server::*&&)(int), Server*&&, int&) (vector.tcc:502)
+==9447==    by 0x1317D9: std::thread& std::vector<std::thread, std::allocator<std::thread> >::emplace_back<void (Server::*)(int), Server*, int&>(void (Server::*&&)(int), Server*&&, int&) (vector.tcc:121)
+==9447==    by 0x13025F: Server::start() (Server.cpp:73)
+==9447==    by 0x12F2AB: main (main.cpp:16)
+==9447==  Address 0x1ffefff778 is on thread #1's stack
+==9447==  in frame #2, created by main (main.cpp:4)
+==9447== 
+==9447== ----------------------------------------------------------------
+==9447== 
+==9447== Possible data race during read of size 8 at 0x1FFEFFF780 by thread #2
+==9447== Locks held: none
+==9447==    at 0x132449: __gnu_cxx::__normal_iterator<std::thread*, std::vector<std::thread, std::allocator<std::thread> > >::__normal_iterator(std::thread* const&) (stl_iterator.h:1028)
+==9447==    by 0x1318A0: std::vector<std::thread, std::allocator<std::thread> >::end() (stl_vector.h:830)
+==9447==    by 0x130405: Server::stop() (Server.cpp:89)
+==9447==    by 0x13086C: Server::handleClient(int) (Server.cpp:120)
+==9447==    by 0x135728: void std::__invoke_impl<void, void (Server::*)(int), Server*, int>(std::__invoke_memfun_deref, void (Server::*&&)(int), Server*&&, int&&) (invoke.h:74)
+==9447==    by 0x1355DC: std::__invoke_result<void (Server::*)(int), Server*, int>::type std::__invoke<void (Server::*)(int), Server*, int>(void (Server::*&&)(int), Server*&&, int&&) (invoke.h:96)
+==9447==    by 0x135471: void std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:259)
+==9447==    by 0x13538C: std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> >::operator()() (std_thread.h:266)
+==9447==    by 0x1352EC: std::thread::_State_impl<std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> > >::_M_run() (std_thread.h:211)
+==9447==    by 0x4950252: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==9447==    by 0x4B54AC2: start_thread (pthread_create.c:442)
+==9447== 
+==9447== This conflicts with a previous write of size 8 by thread #1
+==9447== Locks held: none
+==9447==    at 0x132257: void std::vector<std::thread, std::allocator<std::thread> >::_M_realloc_insert<void (Server::*)(int), Server*, int&>(__gnu_cxx::__normal_iterator<std::thread*, std::vector<std::thread, std::allocator<std::thread> > >, void (Server::*&&)(int), Server*&&, int&) (vector.tcc:503)
+==9447==    by 0x1317D9: std::thread& std::vector<std::thread, std::allocator<std::thread> >::emplace_back<void (Server::*)(int), Server*, int&>(void (Server::*&&)(int), Server*&&, int&) (vector.tcc:121)
+==9447==    by 0x13025F: Server::start() (Server.cpp:73)
+==9447==    by 0x12F2AB: main (main.cpp:16)
+==9447==  Address 0x1ffefff780 is on thread #1's stack
+==9447==  in frame #2, created by main (main.cpp:4)
+==9447== 
+==9447== ----------------------------------------------------------------
+==9447== 
+==9447== Thread #2's call to pthread_join failed
+==9447==    with error code 35 (EDEADLK: Resource deadlock would occur)
+==9447==    at 0x48509C7: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==9447==    by 0x49502C6: std::thread::join() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x130464: Server::stop() (Server.cpp:91)
+==9447==    by 0x13086C: Server::handleClient(int) (Server.cpp:120)
+==9447==    by 0x135728: void std::__invoke_impl<void, void (Server::*)(int), Server*, int>(std::__invoke_memfun_deref, void (Server::*&&)(int), Server*&&, int&&) (invoke.h:74)
+==9447==    by 0x1355DC: std::__invoke_result<void (Server::*)(int), Server*, int>::type std::__invoke<void (Server::*)(int), Server*, int>(void (Server::*&&)(int), Server*&&, int&&) (invoke.h:96)
+==9447==    by 0x135471: void std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:259)
+==9447==    by 0x13538C: std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> >::operator()() (std_thread.h:266)
+==9447==    by 0x1352EC: std::thread::_State_impl<std::thread::_Invoker<std::tuple<void (Server::*)(int), Server*, int> > >::_M_run() (std_thread.h:211)
+==9447==    by 0x4950252: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==9447==    by 0x4B54AC2: start_thread (pthread_create.c:442)
+==9447== 
+terminate called after throwing an instance of 'std::system_error'
+  what():  Resource deadlock avoided
+==9447== 
+==9447== Process terminating with default action of signal 6 (SIGABRT)
+==9447==    at 0x4B569FC: __pthread_kill_implementation (pthread_kill.c:44)
+==9447==    by 0x4B569FC: __pthread_kill_internal (pthread_kill.c:78)
+==9447==    by 0x4B569FC: pthread_kill@@GLIBC_2.34 (pthread_kill.c:89)
+==9447==    by 0x4B02475: raise (raise.c:26)
+==9447==    by 0x4AE87F2: abort (abort.c:79)
+==9447==    by 0x4916B9D: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x492220B: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x4922276: std::terminate() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x49224D7: __cxa_throw (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x491983B: std::__throw_system_error(int) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x49502DF: std::thread::join() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==9447==    by 0x130464: Server::stop() (Server.cpp:91)
+==9447==    by 0x13086C: Server::handleClient(int) (Server.cpp:120)
+==9447==    by 0x135728: void std::__invoke_impl<void, void (Server::*)(int), Server*, int>(std::__invoke_memfun_deref, void (Server::*&&)(int), Server*&&, int&&) (invoke.h:74)
+==9447== 
+==9447== Use --history-level=approx or =none to gain increased speed, at
+==9447== the cost of reduced accuracy of conflicting-access information
+==9447== For lists of detected and suppressed errors, rerun with: -s
+==9447== ERROR SUMMARY: 3 errors from 3 contexts (suppressed: 41 from 13)

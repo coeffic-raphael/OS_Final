@@ -1,0 +1,33 @@
+        -:    0:Source:MSTFactory.hpp
+        -:    1:#ifndef MSTFACTORY_HPP
+        -:    2:#define MSTFACTORY_HPP
+        -:    3:
+        -:    4:#include "MSTAlgos.hpp"
+        -:    5:#include "Prim.hpp"
+        -:    6:#include "Kruskal.hpp"
+        -:    7:#include <memory>
+        -:    8:#include <string>
+        -:    9:#include <stdexcept>
+        -:   10:#include <algorithm>
+        -:   11:
+        -:   12:template<typename T>
+        -:   13:class MSTFactory {
+        -:   14:public:
+        -:   15:    // Static method to create the appropriate MST solver
+        5:   16:    static std::unique_ptr<MSTAlgos<T>> createSolver(const std::string& algorithm) {
+        5:   17:        std::string alg = algorithm;
+        -:   18:        // Convert the algorithm name to lowercase for case-insensitive comparison
+        5:   19:        std::transform(alg.begin(), alg.end(), alg.begin(), ::tolower);
+        -:   20:
+        -:   21:        // Return the appropriate MST algorithm based on the input
+        5:   22:        if (alg == "prim") {
+        2:   23:            return std::make_unique<Prim<T>>(); // Return Prim's algorithm solver
+        3:   24:        } else if (alg == "kruskal") {
+        2:   25:            return std::make_unique<Kruskal<T>>(); // Return Kruskal's algorithm solver
+        -:   26:        }
+        -:   27:        // Throw an error if the algorithm is not supported
+        1:   28:        throw std::invalid_argument("Unsupported MST algorithm: " + algorithm);
+        5:   29:    }
+        -:   30:};
+        -:   31:
+        -:   32:#endif // MSTFACTORY_HPP

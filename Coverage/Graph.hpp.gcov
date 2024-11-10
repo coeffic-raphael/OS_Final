@@ -1,0 +1,57 @@
+        -:    0:Source:Graph.hpp
+        -:    1:
+        -:    2:#ifndef GRAPH_HPP
+        -:    3:#define GRAPH_HPP
+        -:    4:
+        -:    5:#include "GraphBase.hpp"
+        -:    6:#include <stdexcept>
+        -:    7:
+        -:    8:template<typename T>
+        -:    9:class Graph : public GraphBase<T> {
+        -:   10:public:
+        -:   11:    // Constructor to initialize a graph with 'V' vertices
+        1:   12:    Graph(int V) : GraphBase<T>(V) {}
+        -:   13:
+        -:   14:    // Add an edge to the graph (undirected)
+        1:   15:    void addEdge(int u, int v, T weight) override {
+        1:   16:        checkVertex(u); // Ensure the vertex 'u' is valid
+        1:   17:        checkVertex(v); // Ensure the vertex 'v' is valid
+        1:   18:        this->adj[u].push_back(std::make_pair(v, weight)); // u -> v
+        1:   19:        this->adj[v].push_back(std::make_pair(u, weight)); // v -> u (undirected)
+        1:   20:    }
+        -:   21:
+        -:   22:    // Remove an edge from the graph (undirected)
+    #####:   23:    void removeEdge(int u, int v) override {
+    #####:   24:        checkVertex(u); // Ensure the vertex 'u' is valid
+    #####:   25:        checkVertex(v); // Ensure the vertex 'v' is valid
+        -:   26:        // Remove the edge u -> v
+    #####:   27:        this->adj[u].remove_if([v](const std::pair<int, T>& edge) {
+    #####:   28:            return edge.first == v;
+        -:   29:        });
+        -:   30:        // Remove the edge v -> u (since it's undirected)
+    #####:   31:        this->adj[v].remove_if([u](const std::pair<int, T>& edge) {
+    #####:   32:            return edge.first == u;
+        -:   33:        });
+    #####:   34:    }
+        -:   35:
+        -:   36:    // Print the graph (list of vertices and their connections)
+    #####:   37:    void print() const override {
+    #####:   38:        for (size_t u = 0; u < this->adj.size(); ++u) {
+    #####:   39:            std::cout << "Vertex " << u << " is connected to :";
+    #####:   40:            for (auto [v, weight] : this->adj[u]) {
+    #####:   41:                std::cout << " (Vertex " << v << ", Weight " << weight << ")";
+        -:   42:            }
+    #####:   43:            std::cout << std::endl;
+        -:   44:        }
+    #####:   45:    }
+        -:   46:
+        -:   47:private:
+        -:   48:    // Check if the vertex index is valid
+        2:   49:    void checkVertex(int v) const {
+       2*:   50:        if (v < 0 || v >= static_cast<int>(this->adj.size())) {
+    #####:   51:            throw std::out_of_range("Invalid vertex index");
+        -:   52:        }
+        2:   53:    }
+        -:   54:};
+        -:   55:
+        -:   56:#endif // GRAPH_HPP

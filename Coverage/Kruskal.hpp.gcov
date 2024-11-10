@@ -1,0 +1,75 @@
+        -:    0:Source:Kruskal.hpp
+        -:    1:#ifndef KRUSKAL_HPP
+        -:    2:#define KRUSKAL_HPP
+        -:    3:
+        -:    4:#include "MSTAlgos.hpp"
+        -:    5:#include <vector>
+        -:    6:#include <algorithm>
+        -:    7:#include <numeric>
+        -:    8:
+        -:    9:template<typename T>
+        -:   10:class Kruskal : public MSTAlgos<T> {
+        -:   11:private:
+        -:   12:    // Find function for the Union-Find (Disjoint Set) system with path compression
+        8:   13:    int find(int u, std::vector<int>& parent) {
+        8:   14:        if (u != parent[u]) {
+        -:   15:            // Recursively find the root and compress the path
+    #####:   16:            parent[u] = find(parent[u], parent);
+        -:   17:        }
+        8:   18:        return parent[u];
+        -:   19:    }
+        -:   20:
+        -:   21:    // Union function for the Union-Find system with union by rank
+        2:   22:    void unite(int u, int v, std::vector<int>& parent, std::vector<int>& rank) {
+        2:   23:        int rootU = find(u, parent);
+        2:   24:        int rootV = find(v, parent);
+        2:   25:        if (rootU != rootV) {
+        -:   26:            // Union by rank: attach the smaller tree to the larger tree
+        2:   27:            if (rank[rootU] > rank[rootV]) {
+    #####:   28:                parent[rootV] = rootU;
+        2:   29:            } else if (rank[rootU] < rank[rootV]) {
+    #####:   30:                parent[rootU] = rootV;
+        -:   31:            } else {
+        2:   32:                parent[rootV] = rootU;
+        2:   33:                rank[rootU]++;
+        -:   34:            }
+        -:   35:        }
+        2:   36:    }
+        -:   37:
+        -:   38:public:
+        -:   39:    // Implementation of Kruskal's algorithm to solve the MST problem
+        2:   40:    Tree<T> solveMST(const Graph<T>& graph) override {
+        2:   41:        int V = graph.getAdjacencyList().size(); // Number of vertices
+        2:   42:        Tree<T> mst(V); // Initialize an empty MST
+        2:   43:        std::vector<std::tuple<T, int, int>> edges;
+        -:   44:
+        -:   45:        // Collect all edges from the graph
+        6:   46:        for (int u = 0; u < V; ++u) {
+        8:   47:            for (auto [v, weight] : graph.getAdjacencyList()[u]) {
+        4:   48:                if (u < v) {
+        2:   49:                    edges.push_back({weight, u, v}); // Only add one direction for undirected edges
+        -:   50:                }
+        -:   51:            }
+        -:   52:        }
+        -:   53:
+        -:   54:        // Sort the edges by weight (ascending)
+        2:   55:        std::sort(edges.begin(), edges.end());
+        -:   56:
+        -:   57:        // Initialize the Union-Find structure
+        4:   58:        std::vector<int> parent(V), rank(V, 0);
+        2:   59:        std::iota(parent.begin(), parent.end(), 0); // Set parent[i] = i (each node is its own parent initially)
+        -:   60:
+        -:   61:        // Traverse the sorted edges
+        4:   62:        for (auto [weight, u, v] : edges) {
+        -:   63:            // If u and v are not already connected, add the edge to the MST
+        2:   64:            if (find(u, parent) != find(v, parent)) {
+        2:   65:                mst.addEdge(u, v, weight); // Add the edge to the MST
+        2:   66:                unite(u, v, parent, rank); // Union the sets containing u and v
+        -:   67:            }
+        -:   68:        }
+        -:   69:
+        4:   70:        return mst; // Return the final MST
+        2:   71:    }
+        -:   72:};
+        -:   73:
+        -:   74:#endif // KRUSKAL_HPP

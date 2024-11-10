@@ -1,0 +1,25 @@
+        -:    0:Source:MSTAlgos.hpp
+        -:    1:#ifndef MSTALGOS_HPP
+        -:    2:#define MSTALGOS_HPP
+        -:    3:
+        -:    4:#include "Graph.hpp"
+        -:    5:#include "Tree.hpp"
+        -:    6:
+        -:    7:template<typename T>
+        -:    8:class MSTAlgos {
+        -:    9:public:
+        -:   10:    // Abstract method to solve the Minimum Spanning Tree (MST) problem
+        -:   11:    virtual Tree<T> solveMST(const Graph<T>& graph) = 0;
+        -:   12:
+        -:   13:    // Virtual destructor (default implementation)
+       4*:   14:    virtual ~MSTAlgos() = default;
+------------------
+_ZN8MSTAlgosIdED0Ev:
+    #####:   14:    virtual ~MSTAlgos() = default;
+------------------
+_ZN8MSTAlgosIdED2Ev:
+        4:   14:    virtual ~MSTAlgos() = default;
+------------------
+        -:   15:};
+        -:   16:
+        -:   17:#endif // MSTALGOS_HPP

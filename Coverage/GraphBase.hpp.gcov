@@ -1,0 +1,48 @@
+        -:    0:Source:GraphBase.hpp
+        -:    1:#ifndef GRAPHBASE_HPP
+        -:    2:#define GRAPHBASE_HPP
+        -:    3:
+        -:    4:#include <vector>
+        -:    5:#include <list>
+        -:    6:#include <utility>
+        -:    7:#include <iostream>
+        -:    8:#include <stdexcept>
+        -:    9:
+        -:   10:template<typename T>
+        -:   11:class GraphBase {
+        -:   12:protected:
+        -:   13:    // Adjacency list where each vertex is associated with a list of pairs (neighbor, weight)
+        -:   14:    std::vector<std::list<std::pair<int, T>>> adj; // Adjacency list with weights of generic type T
+        -:   15:
+        -:   16:public:
+        -:   17:    // Constructor to initialize a graph with 'V' vertices
+        5:   18:    GraphBase(int V) {
+        5:   19:        adj.resize(V); // Resize the adjacency list to hold V vertices
+        5:   20:    }
+        -:   21:
+        -:   22:    // Method to access the adjacency list
+       15:   23:    const std::vector<std::list<std::pair<int, T>>>& getAdjacencyList() const {
+       15:   24:        return adj;
+        -:   25:    }
+        -:   26:
+        -:   27:    // Pure virtual method to add an edge (must be implemented in derived classes)
+        -:   28:    virtual void addEdge(int u, int v, T weight) = 0;
+        -:   29:
+        -:   30:    // Pure virtual method to remove an edge (must be implemented in derived classes)
+        -:   31:    virtual void removeEdge(int u, int v) = 0;
+        -:   32:
+        -:   33:    // Pure virtual method to print the graph (must be implemented in derived classes)
+        -:   34:    virtual void print() const = 0;
+        -:   35:
+        -:   36:    // Virtual destructor (default implementation)
+       9*:   37:    virtual ~GraphBase() = default;
+------------------
+_ZN9GraphBaseIdED0Ev:
+    #####:   37:    virtual ~GraphBase() = default;
+------------------
+_ZN9GraphBaseIdED2Ev:
+        9:   37:    virtual ~GraphBase() = default;
+------------------
+        -:   38:};
+        -:   39:
+        -:   40:#endif // GRAPHBASE_HPP

@@ -1,0 +1,88 @@
+        -:    0:Source:ThreadPool.cpp
+        -:    1:#include "ThreadPool.hpp"
+        -:    2:
+        2:    3:ThreadPool::ThreadPool(size_t numThreads) : stopFlag(false), leaderAssigned(false) {
+        -:    4:    // Create the specified number of worker threads
+       10:    5:    for (size_t i = 0; i < numThreads; ++i) {
+        8:    6:        workers.emplace_back([this]() {
+        -:    7:            while (true) {
+       16:    8:                std::function<void()> task;
+        -:    9:
+        -:   10:                {
+       16:   11:                    std::unique_lock<std::mutex> lock(this->mutex);
+        -:   12:
+        -:   13:                    // Wait until a task is available or the pool is stopped
+        -:   14:                    // Also wait if a leader has already been assigned
+       36:   15:                    while (!stopFlag && (tasks.empty() || leaderAssigned)) {
+       20:   16:                        condition.wait(lock); // Wait for tasks or stop signal
+        -:   17:                    }
+        -:   18:
+        -:   19:                    // If the pool is stopped and there are no tasks, exit the thread
+       16:   20:                    if (stopFlag && tasks.empty())
+       16:   21:                        return;
+        -:   22:
+        -:   23:                    // Assign the current thread as the leader
+        8:   24:                    leaderAssigned = true;
+        -:   25:
+        -:   26:                    // The leader takes the task from the queue
+        8:   27:                    task = std::move(tasks.front());
+        8:   28:                    tasks.pop();
+       16:   29:                }
+        -:   30:
+        -:   31:                // Execute the task
+        8:   32:                task();
+        -:   33:
+        -:   34:                // Transfer the leadership role
+        -:   35:                {
+        8:   36:                    std::unique_lock<std::mutex> lock(this->mutex);
+        -:   37:
+        -:   38:                    // Check if there are still tasks left to process
+        8:   39:                    if (!tasks.empty()) {
+        -:   40:                        // Release leadership and notify another thread to become the new leader
+        4:   41:                        leaderAssigned = false;
+        4:   42:                        condition.notify_one(); // Notify another thread to take over as leader
+        -:   43:                    } else {
+        -:   44:                        // If no tasks remain, release leadership
+        4:   45:                        leaderAssigned = false;
+        -:   46:                    }
+        8:   47:                }
+       24:   48:            }
+        -:   49:        });
+        -:   50:    }
+        2:   51:}
+        -:   52:
+        8:   53:void ThreadPool::enqueue(std::function<void()> task) {
+        -:   54:    {
+        8:   55:        std::lock_guard<std::mutex> lock(mutex);
+        -:   56:
+        -:   57:        // Prevent adding tasks to a stopped thread pool
+        8:   58:        if (stopFlag)
+    #####:   59:            throw std::runtime_error("Enqueue on a stopped ThreadPool");
+        -:   60:
+        -:   61:        // Add the new task to the task queue
+        8:   62:        tasks.push(std::move(task));
+        -:   63:
+        -:   64:        // If no leader is currently assigned, notify a thread to become the leader
+        8:   65:        if (!leaderAssigned) {
+        8:   66:            condition.notify_one();
+        -:   67:        }
+        8:   68:    }
+        8:   69:}
+        -:   70:
+        4:   71:void ThreadPool::stop() {
+        -:   72:    {
+        4:   73:        std::lock_guard<std::mutex> lock(mutex);
+        4:   74:        stopFlag = true;  // Signal to stop the thread pool
+        4:   75:        condition.notify_all(); // Wake up all threads so they can exit
+        4:   76:    }
+        -:   77:
+        -:   78:    // Join all worker threads, waiting for them to finish
+       20:   79:    for (std::thread &worker : workers) {
+       16:   80:        if (worker.joinable())
+        8:   81:            worker.join();
+        -:   82:    }
+        4:   83:}
+        -:   84:
+        2:   85:ThreadPool::~ThreadPool() {
+        2:   86:    stop();  // Ensure the pool is stopped when destroyed
+        2:   87:}
